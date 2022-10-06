@@ -4,9 +4,11 @@ use std::cmp::Ordering::{Equal, Greater, Less};
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::{Add, Sub, Mul, Index};
 
+use std::time;
+
 struct Number {
-    digits: Vec<i32>,
     base: u8,
+    digits: Vec<i32>,
     sign: bool
 }
 
@@ -95,8 +97,8 @@ impl Carry for Number {
         let mut output: Vec<i32> = self.digits.clone();
         let base_as_i32: i32 = self.base as i32;
         for d in 0..output.len()-1 {
-            let a = &output[d] % &base_as_i32;
-            let b = &output[d] / &base_as_i32;
+            let a = if output[d] < 0 {&base_as_i32 - &output[d]} else {&output[d] % &base_as_i32};
+            let b = if output[d] < 0 {(&output[d] / &base_as_i32) - 1 } else {&output[d] / &base_as_i32};
             output[d] = a;
             output[d+1] += b;
         }
@@ -158,20 +160,74 @@ impl Sub for Number {
     }
 }
 
+fn __school_mul__(number_a: Number, number_b: Number) -> Number {
+    assert_eq!(number_a.base, number_b.base);
+    let output_sign = number_a.sign ^ number_b.sign;
+    let len = number_a.digits.len() + number_b.digits.len() - 1;
+    let mut output = vec![0; len];
+    for n in 0..len {
+        for k in 0..=n {
+            output[n] += number_a[n-k] * number_b[k];
+        }
+    }
+    Number {base: number_a.base, digits: output, sign: output_sign}.resolve()
+
+}
+
 impl Mul for Number {
     type Output = Self;
 
     fn mul(self, other: Self) -> Self::Output {
         assert_eq!(self.base, other.base);
         let output_sign = self.sign ^ other.sign;
-        let len = self.digits.len() + other.digits.len() - 1;
-        let mut output = vec![0; len];
-        for n in 0..len {
-            for k in 0..=n {
-                output[n] += self[n-k] * other[k];
+        if self.digits.len() < 50 && other.digits.len() < 50 {
+            __school_mul__(self, other)
+        }
+        else {
+            let m = min(self.digits.len(), other.digits.len());
+            if m == 1 {
+                let g = if self.digits.len() != 1 {self.clone()} else {other.clone()};
+                let p = if g != self {self.clone()} else {other.clone()};
+                let p = p[0];
+                let mut r: Vec<i32> = vec![0; g.digits.len()];
+                for (i, e) in g.digits.iter().enumerate() {
+                    r[i] = p.clone() * e;
+                }
+                Number { base: self.base, digits: r, sign: output_sign }.resolve()
+            }
+            else {
+                let m = m / 2;
+                let x0 = Number {base: self.base, digits: self.digits[..m].to_vec(), sign: self.sign};
+                let x1 = Number {base: self.base, digits: self.digits[m..].to_vec(), sign: self.sign};
+                let y0 = Number {base: other.base, digits: other.digits[..m].to_vec(), sign: other.sign};
+                let y1 = Number {base: other.base, digits: other.digits[m..].to_vec(), sign: other.sign};
+
+                if m < 25 {
+                    let z2 = __school_mul__(x1.clone(), y1.clone());
+                    let z0 = __school_mul__(x0.clone(), y0.clone());
+                    let z1 = __school_mul__(x1.clone() + x0.clone(), y1.clone() + y0.clone()) - z2.clone() - z0.clone();
+                    let mut pt0 = vec![0; m*2];
+                    pt0.extend(z2.digits);
+                    let pt0 = Number { base: self.base, digits: pt0, sign: output_sign};
+                    let mut pt1 = vec![0; m];
+                    pt1.extend(z1.digits);
+                    let pt1 = Number {base: self.base, digits: pt1, sign: output_sign};
+                    (pt0 + pt1 + z0).resolve()
+                }
+                else{
+                    let z2 = x1.clone() * y1.clone();
+                    let z0 = x0.clone() * y0.clone();
+                    let z1 = (x1.clone() + x0.clone()) * (y1.clone() + y0.clone()) - z2.clone() - z0.clone();
+                    let mut pt0 = vec![0; m*2];
+                    pt0.extend(z2.digits);
+                    let pt0 = Number { base: self.base, digits: pt0, sign: output_sign};
+                    let mut pt1 = vec![0; m];
+                    pt1.extend(z1.digits);
+                    let pt1 = Number {base: self.base, digits: pt1, sign: output_sign};
+                    (pt0 + pt1 + z0).resolve()
+                }
             }
         }
-        Number {base: self.base, digits: output, sign: output_sign}.resolve()
     }
 }
 
@@ -193,8 +249,8 @@ impl Pow<u16> for Number {
 ///
 
 struct Seq {
-    elements: Vec<Number>,
-    base: u8
+    base: u8,
+    elements: Vec<Number>
 }
 
 trait SignatureFunction {
@@ -410,12 +466,16 @@ fn main(){
     let base = 10;
     let n = Number {base, digits: vec![1], sign: false};
     let two = Number {base, digits: vec![2], sign: false};
-    let seq = Seq {elements: vec![n.clone(), n.clone()], base};
-    let seed = Seq {elements: vec![two, n], base};
+    let seq = Seq {elements: vec![n.clone(), n.clone(), n.clone()], base};
+    let seed = Seq {elements: vec![two.clone(), n], base};
     println!("{}", seq.f(500));
     println!("{}", seq.seeded_f(seed.clone(), 12));
     println!("{}", (seq.clone() * seq.clone() * seq.clone()).seeded_f(seed.clone(),25));
     let sig = Sig {seq: seq.clone(), base};
     println!("{}", sig.clone() + sig.clone());
     println!("{}", (sig.clone() * sig.clone()) + sig.clone());
+    let start = time::Instant::now();
+    println!("{}", (two.clone().pow(7000) * two.clone().pow(5000)));
+    println!("{}", start.elapsed().as_micros());
+    println!("{}", seq * seed);
 }
