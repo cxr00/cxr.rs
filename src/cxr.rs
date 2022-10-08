@@ -1,4 +1,3 @@
-use series::ops::Pow;
 use std::cmp::{max, min, Ordering};
 use std::cmp::Ordering::{Equal, Greater, Less};
 use std::fmt::{Debug, Display, Formatter};
@@ -231,8 +230,7 @@ impl Mul for Number {
     }
 }
 
-impl Pow<u16> for Number {
-    type Output = Self;
+impl Number {
     fn pow(self, pow: u16) -> Self {
         let mut output = Number {base: self.base, digits: vec![1], sign: false};
         let base: Number = self.clone();
