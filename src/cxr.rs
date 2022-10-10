@@ -2,7 +2,6 @@ use std::cmp::{max, min, Ordering};
 use std::cmp::Ordering::{Equal, Greater, Less};
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::{Add, Sub, Mul, Index};
-
 use std::time;
 
 struct Number {
@@ -27,7 +26,11 @@ impl Clone for Number {
 
 impl Debug for Number {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}: {}{:?}", self.base, if self.sign {"-"} else {""}, self.digits)
+        f.debug_struct("Number")
+            .field("base", &self.base)
+            .field("digits", &self.digits)
+            .field("sign", &self.sign)
+            .finish()
     }
 }
 
@@ -268,7 +271,11 @@ impl Clone for Seq {
 
 impl Debug for Seq {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self.elements)
+        let mut elem = String::new();
+        for (i, e) in self.elements.iter().enumerate() {
+            elem = elem + &*format!("{}{}", e, if i == self.len() - 1 { "" } else { ", " });
+        }
+        write!(f, "Seq {{ base: {}, elements: {} }}", self.base, elem)
     }
 }
 
@@ -402,7 +409,7 @@ impl Clone for Sig {
 
 impl Debug for Sig {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self.seq)
+        write!(f, "Sig {{ {:?} }}", self.seq)
     }
 }
 
@@ -466,11 +473,12 @@ fn main(){
     let two = Number {base, digits: vec![2], sign: false};
     let seq = Seq {elements: vec![n.clone(), n.clone(), n.clone()], base};
     let seed = Seq {elements: vec![two.clone(), n], base};
-    println!("{}", seq.f(500));
+    println!("{:?}", two.clone().pow(12));
+    println!("{:?}", seq.f(500));
     println!("{}", seq.seeded_f(seed.clone(), 12));
     println!("{}", (seq.clone() * seq.clone() * seq.clone()).seeded_f(seed.clone(),25));
     let sig = Sig {seq: seq.clone(), base};
-    println!("{}", sig.clone() + sig.clone());
+    println!("{:?}", sig.clone() + sig.clone());
     println!("{}", (sig.clone() * sig.clone()) + sig.clone());
     let start = time::Instant::now();
     println!("{}", (two.clone().pow(7000) * two.clone().pow(5000)));
