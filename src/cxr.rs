@@ -207,7 +207,7 @@ impl Mul for Number {
                 if m < 25 {
                     let z2 = __school_mul__(x1.clone(), y1.clone());
                     let z0 = __school_mul__(x0.clone(), y0.clone());
-                    let z1 = __school_mul__(x1.clone() + x0.clone(), y1.clone() + y0.clone()) - z2.clone() - z0.clone();
+                    let z1 = __school_mul__(x1 + x0, y1 + y0) - z2.clone() - z0.clone();
                     let mut pt0 = vec![0; m*2];
                     pt0.extend(z2.digits);
                     let pt0 = Number { base: self.base, digits: pt0, sign: output_sign};
@@ -219,7 +219,7 @@ impl Mul for Number {
                 else{
                     let z2 = x1.clone() * y1.clone();
                     let z0 = x0.clone() * y0.clone();
-                    let z1 = (x1.clone() + x0.clone()) * (y1.clone() + y0.clone()) - z2.clone() - z0.clone();
+                    let z1 = (x1 + x0) * (y1 + y0) - z2.clone() - z0.clone();
                     let mut pt0 = vec![0; m*2];
                     pt0.extend(z2.digits);
                     let pt0 = Number { base: self.base, digits: pt0, sign: output_sign};
@@ -236,7 +236,7 @@ impl Mul for Number {
 impl Number {
     fn pow(self, pow: u16) -> Self {
         let mut output = Number {base: self.base, digits: vec![1], sign: false};
-        let base: Number = self.clone();
+        let base: Number = self;
         for _ in 1..=pow {
             output = output * base.clone();
         }
@@ -462,7 +462,7 @@ impl Mul for Sig {
             g = g.clone() * ax.clone();
             output = output.clone() + g.clone() * Seq { base: self.base, elements: vec![other.seq[k].clone()] };
         }
-        output = output.clone() * self.seq.clone();
+        output = output * self.seq;
         Sig {base: self.base, seq: output}
     }
 }
